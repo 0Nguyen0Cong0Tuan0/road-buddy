@@ -1,9 +1,8 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Any
-from hydra.core.config_store import ConfigStore 
+from typing import List, Optional
+from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
 
-# 1. Dataset configuration schema
 @dataclass
 class QdrantConfig:
     """Configuration for the Qdrant Vector Database."""
@@ -11,52 +10,58 @@ class QdrantConfig:
     port: int = 6333
     collection_name: str = "roadbuddy_memory"
     use_hybrid: bool = True
-
-    # Dense model for semantic search
-    dense_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
-
-    # Sparse model for keyword-based search (SPLADE or BM25)
+    dense_model_name: str = "BAAI/bge-m3"
     sparse_model_name: str = "prithivida/Splade_PP_en_v1"
     api_key: Optional[str] = None
+    embedding_dim: int = 1024  # bge-m3 dimension
 
-# 2. Perception configuration schema
 @dataclass
 class YOLOConfig:
-    """Configuration for the YOLO11 Perception Engine."""
-    model_path: str = "yolo11n.pt" # Path to the YOLO11 model weightss
-    task: str = "detect"           # Options: "detect", "segment", "pose", "obb"
-    confidence: float = 0.25       # Confidence threshold for detections
-    iou_threshold: float = 0.45    # NMS Intersection over Union threshold
-    device: str = "0"              # CUDA device index or "cpu"
-    imgsz: int = 640               # Input image size (pixels)
-    classes: Optional[List[int]] = None # Filter specific classes (e.g., 0 for person)
-    half: bool = False              # Use FP16 inference
-    tracker_config: str = "botsort.yaml" # Tracker configuration file
+    """Configuration for YOLO11 Perception Engine."""
+    model_path: str = "yolov11n.pt"
+    task: str = "detect"
+    confidence: float = 0.25
+    iou_threshold: float = 0.45
+    device: str = "0"
+    imgsz: int = 640
+    classes: Optional[List[int]] = None
+    half: bool = False
+    tracker_config: str = "botsort.yaml"
 
-# 3. Ingestion Configuration Schema
 @dataclass
 class DecordConfig:
     """Configuration for Video Ingestion via Decord."""
-    video_path: str = MISSING       # Must be provided at runtime
-    batch_size: int = 16            # Number of frames to process at once
-    width: int = -1                 # -1 implies original width
-    height: int = -1                # -1 implies original height
-    num_threads: int = 0            # 0 implies auto-detection
-    device: str = "gpu"             # 'cpu' or 'gpu'
-    ctx_id: int = 0                 # GPU device index for decoding
+    video_path: str = MISSING
+    batch_size: int = 16
+    width: int = -1
+    height: int = -1
+    num_threads: int = 0
+    device: str = "gpu" 
+    ctx_id: int = 0
 
-# 4. Reasoning Configuration Schema
 @dataclass
 class VLLMConfig:
-    """Configuration for the vLLM Cognitive Engine."""
+    """Configuration for VLLM Congitive Reasoning Engine."""
     api_base: str = "http://localhost:8000/v1"
-    model_name: str = "meta-llama/Meta-Llama-3-8B-Instruct"
-    api_key: str = "EMPTY"          # vLLM often uses dummy keys
-    max_tokens: int = 128           # Limit output length for latency
-    temperature: float = 0.1        # Low temperature for deterministic advice
-    system_prompt: str = "You are a safety-critical autonomous driving assistant."
+    model_name: str = "Qwen/Qwen2.5-VL-7B-Instruct-AWQ"
+    api_key: str = "EMPTY"
+    max_tokens: int = 2048
+    temperature: float = 0.1
+    system_prompt: str = (
+        "You are a legal expert in Vietnamese Road Traffic Law. "
+        "Answer based ONLY on the provided context from Law 36/2024 and QCVN 41:2024. "
+        "Cite specific Articles and Clauses."
+    )
 
-# 5. Root Configuration Schema
+@dataclass
+class KeyframeConfig:
+    """Configuration for Dymamic Keyframe Selection."""
+    base_fps: int = 1 # Base sampling rate
+    max_keyframes: int = 8
+    optical_flow_threshold: float = 5.0
+    similarity_threshold: float = 0.95
+    detection_trigger: bool = True
+
 @dataclass
 class RoadBuddyConfig:
     """Master Configuration Object."""
@@ -64,20 +69,14 @@ class RoadBuddyConfig:
     perception: YOLOConfig = field(default_factory=YOLOConfig)
     ingestion: DecordConfig = field(default_factory=DecordConfig)
     reasoning: VLLMConfig = field(default_factory=VLLMConfig)
+    keyframe: KeyframeConfig = field(default_factory=KeyframeConfig)
 
     # Global settings
     debug: bool = False
     output_dir: str = "outputs"
     seed: int = 42
+    max_latency: float = 28.0  # 2 seconds buffer for 30s limit
 
-# Registering the configs allows Hydra to discover them by name
 def register_configs():
-    cs = ConfigStore.instance()
-    # Register the root config
-    cs.store(name="base_config", node=RoadBuddyConfig)
+    """Register all configurations to Hydra's ConfigStore."""
     
-    # Register component groups
-    cs.store(group="db", name="local_qdrant", node=QdrantConfig)
-    cs.store(group="perception", name="yolo11n", node=YOLOConfig)
-    cs.store(group="ingestion", name="decord_gpu", node=DecordConfig)
-    cs.store(group="reasoning", name="vllm_docker", node=VLLMConfig)
