@@ -1,0 +1,10 @@
+defaults:
+  - db: local_qdrant
+  - perception: yolo11n
+  - ingestion: decord_gpu
+  - reasoning: vllm_docker
+  - _self_  # Allows the main config to override defaults
+
+# Global overrides
+debug: true
+output_dir: "./runs/detect"
