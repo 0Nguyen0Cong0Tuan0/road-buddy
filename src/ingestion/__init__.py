@@ -3,21 +3,42 @@
 This module provides GPU-accelerated video loading, temporal sampling,
 and batch processing capabilities for the RoadBuddy traffic law QA system.
 
+Design Principle: NO resizing/cropping during ingestion to preserve image quality.
+Only temporal sampling is performed - downstream models receive native resolution frames.
+
 Main Components:
 - RoadVideoLoader: Core video loading with Decord/OpenCV backends
+- FrameSampler: Intelligent frame sampling strategies (uniform, adaptive, temporal)
 - BatchVideoProcessor: Batch processing for datasets
-- Utility functions: Validation, metadata extraction, bbox operations
+- Utility functions: Validation, metadata extraction
+
+Sampling Strategies:
+- Uniform: Evenly spaced frames
+- Adaptive: Frame count scales with video duration (longer = more frames)
+- FPS-based: Sample at target FPS rate
+- Temporal chunks: Sample from video segments
 
 Example Usage:
-    >>> from src.ingestion import RoadVideoLoader, DecordConfig
+    >>> from src.ingestion import RoadVideoLoader, FrameSampler
+    >>> from src.configs import DecordConfig
     >>> 
     >>> config = DecordConfig(video_path='video.mp4', device='gpu')
     >>> loader = RoadVideoLoader(config)
-    >>> frames = loader.sample_uniform(8)  # Get 8 evenly spaced frames
-    >>> metadata = loader.get_metadata()
+    >>> 
+    >>> # Adaptive sampling: longer videos get more frames
+    >>> frames = loader.sample_adaptive(min_frames=8, max_frames=64)
+    >>> 
+    >>> # Or use FrameSampler directly for indices
+    >>> sampler = FrameSampler()
+    >>> indices = sampler.sample_adaptive(loader.total_frames, loader.fps)
 """
 
 from .loader import RoadVideoLoader
+from .sampler import (
+    FrameSampler,
+    sample_video_adaptive,
+    sample_video_uniform
+)
 from .processor import BatchVideoProcessor, ProcessingStats, extract_keyframes
 from .utils import (
     validate_video,
@@ -25,18 +46,22 @@ from .utils import (
     estimate_memory,
     convert_timestamp_to_frame,
     convert_frame_to_timestamp,
-    crop_and_resize,
     expand_bbox,
-    calculate_iou,
-    create_video_thumbnail
+    calculate_iou
 )
 
-__version__ = "1.0.0"
+
+__version__ = "1.1.0"
 __all__ = [
     # Core classes
     "RoadVideoLoader",
+    "FrameSampler",
     "BatchVideoProcessor",
     "ProcessingStats",
+    
+    # Sampling utilities
+    "sample_video_adaptive",
+    "sample_video_uniform",
     
     # Processing functions
     "extract_keyframes",
@@ -50,9 +75,7 @@ __all__ = [
     "convert_timestamp_to_frame",
     "convert_frame_to_timestamp",
     
-    # Image operations
-    "crop_and_resize",
+    # Image operations (available for post-detection use)
     "expand_bbox",
     "calculate_iou",
-    "create_video_thumbnail",
 ]

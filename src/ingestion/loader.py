@@ -1,4 +1,7 @@
 # Video Loading with Decord
+#
+# Design Principle: Load videos at native resolution (no resize/crop during loading)
+# to preserve image quality for downstream models.
 
 import logging
 import os
@@ -6,6 +9,8 @@ from typing import Iterator, Dict, Any, List, Optional, Tuple, Union
 import torch
 import numpy as np
 from pathlib import Path
+
+from .sampler import FrameSampler
 
 try:
     from decord import VideoReader, cpu, gpu
@@ -297,88 +302,79 @@ class RoadVideoLoader:
         
         return self._get_batch(indices)
 
-    # ==================== Preprocessing Methods ====================
-
-    def preprocess_frame(
+    def sample_adaptive(
         self,
-        frame: torch.Tensor,
-        resize: Optional[Tuple[int, int]] = None,
-        normalize: bool = True,
-        mean: List[float] = [0.485, 0.456, 0.406],
-        std: List[float] = [0.229, 0.224, 0.225]
+        min_frames: int = 8,
+        max_frames: int = 64,
+        frames_per_second: float = 0.5
     ) -> torch.Tensor:
-        """Preprocess a single frame.
+        """Adaptive sampling based on video duration.
+        
+        Longer videos get more frames, with configurable bounds.
+        Formula: num_frames = clip(duration * frames_per_second, min_frames, max_frames)
         
         Args:
-            frame: Input frame tensor (C, H, W) in range [0, 1]
-            resize: Target size (height, width), None to skip
-            normalize: Whether to apply normalization
-            mean: Mean for normalization (ImageNet default)
-            std: Standard deviation for normalization (ImageNet default)
+            min_frames: Minimum number of frames to return
+            max_frames: Maximum number of frames to return
+            frames_per_second: Target sampling rate (frames per second of video duration)
             
         Returns:
-            torch.Tensor: Preprocessed frame
+            torch.Tensor: Sampled frames with shape (N, C, H, W)
+            
+        Example:
+            >>> loader = RoadVideoLoader(config)
+            >>> # For 60-second video with default settings:
+            >>> # frames = 60 * 0.5 = 30 frames (clamped to 8-64 range)
+            >>> frames = loader.sample_adaptive(min_frames=8, max_frames=64)
         """
-        # Resize if needed
-        if resize is not None:
-            import torch.nn.functional as F
-            # Add batch dimension for resize
-            frame = frame.unsqueeze(0)
-            frame = F.interpolate(
-                frame,
-                size=resize,
-                mode='bilinear',
-                align_corners=False
-            )
-            frame = frame.squeeze(0)
+        sampler = FrameSampler()
+        indices = sampler.sample_adaptive(
+            total_frames=self.total_frames,
+            fps=self.fps,
+            min_frames=min_frames,
+            max_frames=max_frames,
+            frames_per_second=frames_per_second
+        )
         
-        # Normalize if needed
-        if normalize:
-            mean_tensor = torch.tensor(mean).view(3, 1, 1)
-            std_tensor = torch.tensor(std).view(3, 1, 1)
-            frame = (frame - mean_tensor) / std_tensor
+        logging.info(
+            f"Adaptive sampling: {len(indices)} frames from {self.total_frames} "
+            f"(duration={self.duration:.1f}s, rate={frames_per_second} fps)"
+        )
         
-        return frame
+        return self.sample_indices(indices)
 
-    def preprocess_batch(
+    def sample_temporal_chunks(
         self,
-        frames: torch.Tensor,
-        resize: Optional[Tuple[int, int]] = None,
-        normalize: bool = True,
-        mean: List[float] = [0.485, 0.456, 0.406],
-        std: List[float] = [0.229, 0.224, 0.225]
+        num_chunks: int = 4,
+        frames_per_chunk: int = 2
     ) -> torch.Tensor:
-        """Preprocess a batch of frames.
+        """Sample frames from temporal chunks for better coverage.
+        
+        Divides video into chunks and samples from each, ensuring
+        frames are evenly spread across the temporal extent.
         
         Args:
-            frames: Input frames tensor (B, C, H, W) in range [0, 1]
-            resize: Target size (height, width), None to skip
-            normalize: Whether to apply normalization
-            mean: Mean for normalization
-            std: Standard deviation for normalization
+            num_chunks: Number of temporal segments
+            frames_per_chunk: Frames to sample from each segment
             
         Returns:
-            torch.Tensor: Preprocessed frames
+            torch.Tensor: Sampled frames with shape (N, C, H, W)
         """
-        # Resize if needed
-        if resize is not None:
-            import torch.nn.functional as F
-            frames = F.interpolate(
-                frames,
-                size=resize,
-                mode='bilinear',
-                align_corners=False
-            )
+        sampler = FrameSampler()
+        indices = sampler.sample_temporal_chunks(
+            total_frames=self.total_frames,
+            num_chunks=num_chunks,
+            frames_per_chunk=frames_per_chunk
+        )
         
-        # Normalize if needed
-        if normalize:
-            mean_tensor = torch.tensor(mean).view(1, 3, 1, 1)
-            std_tensor = torch.tensor(std).view(1, 3, 1, 1)
-            frames = (frames - mean_tensor) / std_tensor
+        logging.info(
+            f"Temporal chunk sampling: {len(indices)} frames from {num_chunks} chunks"
+        )
         
-        return frames
+        return self.sample_indices(indices)
 
     # ==================== Metadata and Utilities ====================
+
 
     def get_metadata(self) -> Dict[str, Any]:
         """Return comprehensive video metadata.
@@ -441,5 +437,5 @@ class RoadVideoLoader:
 
     def __del__(self):
         """Cleanup resources."""
-        if self.backend == 'opencv' and self.reader is not None:
+        if hasattr(self, 'backend') and self.backend == 'opencv' and self.reader is not None:
             self.reader.release()

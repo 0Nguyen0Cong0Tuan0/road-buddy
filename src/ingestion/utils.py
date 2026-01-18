@@ -179,8 +179,7 @@ def estimate_memory(
     video_info: Dict[str, Any],
     num_frames: Optional[int] = None,
     batch_size: int = 1,
-    dtype: str = 'float32'
-) -> float:
+    dtype: str = 'float32') -> float:
     """Estimate memory usage for video processing.
     
     Args:
@@ -255,64 +254,6 @@ def convert_frame_to_timestamp(frame_idx: int, fps: float) -> float:
     """
     return frame_idx / fps
 
-
-def crop_and_resize(
-    frame,
-    bbox: Tuple[int, int, int, int],
-    target_size: Optional[Tuple[int, int]] = None
-):
-    """Crop a region from frame and optionally resize.
-    
-    Args:
-        frame: Input frame tensor (C, H, W) or numpy array (H, W, C)
-        bbox: Bounding box (x1, y1, x2, y2) in pixels
-        target_size: Target size (height, width), None to skip resize
-        
-    Returns:
-        Cropped (and resized) frame in same format as input
-        
-    Example:
-        >>> bbox = (100, 100, 300, 300)  # Sign region
-        >>> cropped = crop_and_resize(frame, bbox, target_size=(224, 224))
-    """
-    import torch
-    import numpy as np
-    
-    x1, y1, x2, y2 = bbox
-    
-    # Handle torch tensor
-    if isinstance(frame, torch.Tensor):
-        # Assuming (C, H, W) format
-        cropped = frame[:, y1:y2, x1:x2]
-        
-        if target_size:
-            import torch.nn.functional as F
-            cropped = cropped.unsqueeze(0)  # Add batch dim
-            cropped = F.interpolate(
-                cropped,
-                size=target_size,
-                mode='bilinear',
-                align_corners=False
-            )
-            cropped = cropped.squeeze(0)  # Remove batch dim
-        
-        return cropped
-    
-    # Handle numpy array
-    elif isinstance(frame, np.ndarray):
-        # Assuming (H, W, C) format
-        cropped = frame[y1:y2, x1:x2, :]
-        
-        if target_size:
-            import cv2
-            cropped = cv2.resize(cropped, (target_size[1], target_size[0]))
-        
-        return cropped
-    
-    else:
-        raise TypeError(f"Unsupported frame type: {type(frame)}")
-
-
 def expand_bbox(
     bbox: Tuple[int, int, int, int],
     expansion_ratio: float,
@@ -382,54 +323,3 @@ def calculate_iou(bbox1: Tuple[int, int, int, int], bbox2: Tuple[int, int, int, 
     union = area1 + area2 - intersection
     
     return intersection / union if union > 0 else 0.0
-
-
-def create_video_thumbnail(
-    video_path: str,
-    output_path: str,
-    frame_idx: Optional[int] = None,
-    size: Tuple[int, int] = (320, 180)
-) -> bool:
-    """Create a thumbnail image from video.
-    
-    Args:
-        video_path: Path to video file
-        output_path: Path to save thumbnail
-        frame_idx: Frame index to use (None = middle frame)
-        size: Thumbnail size (width, height)
-        
-    Returns:
-        bool: True if successful, False otherwise
-    """
-    try:
-        import cv2
-        
-        cap = cv2.VideoCapture(video_path)
-        
-        if not cap.isOpened():
-            return False
-        
-        # Get middle frame if not specified
-        if frame_idx is None:
-            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            frame_idx = total_frames // 2
-        
-        # Read frame
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-        ret, frame = cap.read()
-        cap.release()
-        
-        if not ret:
-            return False
-        
-        # Resize
-        thumbnail = cv2.resize(frame, size)
-        
-        # Save
-        cv2.imwrite(output_path, thumbnail)
-        
-        return True
-        
-    except Exception as e:
-        logging.error(f"Failed to create thumbnail: {e}")
-        return False

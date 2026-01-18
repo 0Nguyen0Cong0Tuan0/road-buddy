@@ -38,7 +38,6 @@ class ProcessingStats:
             "errors": self.errors
         }
 
-
 class BatchVideoProcessor:
     """Process batches of videos for offline dataset preparation.
     
@@ -296,17 +295,3 @@ def extract_keyframes(loader: RoadVideoLoader, num_frames: int = 8) -> Dict[str,
         "sampling_method": "uniform"
     }
 
-
-def extract_metadata_only(loader: RoadVideoLoader) -> Dict[str, Any]:
-    """Example processing function: Extract metadata only (fast).
-    
-    Args:
-        loader: Video loader instance
-        
-    Returns:
-        dict: Video metadata
-    """
-    return {
-        "metadata_only": True,
-        "info": loader.get_metadata()
-    }

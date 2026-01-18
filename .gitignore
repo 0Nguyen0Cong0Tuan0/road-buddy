@@ -37,8 +37,10 @@ env/
 /data/train/videos/
 /data/public_test/videos/
 /data/vector_store/
-/data/custom train data/Kaggle Datasets/
+/data/custom train data/bdd100k/
 /data/custom train data/Road Lane.v2i.yolo26/
+/data/raw/public_test/
+/data/raw/train/
 
 # Model weights
 *.pt
