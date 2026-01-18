@@ -28,8 +28,6 @@ Usage:
     
     # Verbose output
     python tests/test_ingestion.py video.mp4 -v
-
-Author: RoadBuddy Team
 """
 
 import sys
