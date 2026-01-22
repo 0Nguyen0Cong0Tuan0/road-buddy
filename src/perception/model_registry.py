@@ -111,6 +111,20 @@ class ModelRegistry:
             dataset="bdd100k",
             description="YOLO11l finetuned on BDD100K dataset for traffic object detection"
         ),
+        "yolo11n_unified": ModelInfo(
+            name="yolo11n_unified",
+            path=FINETUNE_DIR / "yolo11n_unified" / "weights" / "best.pt",
+            base_model="yolo11n",
+            dataset="unified",
+            description="YOLO11n finetuned on combined Road Lane and BDD100K datasets"
+        ),
+        "yolo11l_unified": ModelInfo(
+            name="yolo11l_unified",
+            path=FINETUNE_DIR / "yolo11l_unified" / "weights" / "best.pt",
+            base_model="yolo11l",
+            dataset="unified",
+            description="YOLO11l finetuned on combined Road Lane and BDD100K datasets"
+        ),
     }
     
     # Initial/pretrained models (not finetuned)
