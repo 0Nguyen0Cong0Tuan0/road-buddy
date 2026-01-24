@@ -104,31 +104,6 @@ class PathConfig:
     def __str__(self) -> str:
         return f"PathConfig(project_root={self.project_root})"
 
-# Ingestion
-@dataclass
-class IngestionConfig:
-    """Video ingestion settings."""
-    # Sampling strategy
-    sampling_strategy: str = "adaptive"  # "uniform", "adaptive", "fps", "temporal_chunks"
-    # Adaptive sampling parameters
-    min_frames: int = 8           # Minimum frames for any video
-    max_frames: int = 64          # Maximum frames for any video
-    frames_per_second: float = 0.5  # Target sampling rate (0.5 = 1 frame per 2 seconds)
-    # FPS-based sampling
-    target_fps: float = 1.0       # For fps sampling strategy
-    # Temporal chunk sampling
-    num_chunks: int = 4           # Number of temporal segments
-    frames_per_chunk: int = 2     # Frames per segment
-    # Video loading
-    batch_size: int = 16          # Batch size for streaming
-    num_threads: int = 0          # 0 = auto
-    device: str = "gpu"           # "gpu" or "cpu"
-    ctx_id: int = 0               # GPU device ID
-    # Native resolution
-    width: int = -1               # -1 = native resolution
-    height: int = -1              # -1 = native resolution
-
-
 # Perception
 @dataclass
 class PerceptionConfig:
@@ -232,11 +207,9 @@ class ProjectConfig:
     """Master configuration for the RoadBuddy project."""
     # Sub-configurations
     paths: PathConfig = field(default_factory=PathConfig)
-    ingestion: IngestionConfig = field(default_factory=IngestionConfig)
     perception: PerceptionConfig = field(default_factory=PerceptionConfig)
     query_guided: QueryGuidedConfig = field(default_factory=QueryGuidedConfig)
     reasoning: ReasoningConfig = field(default_factory=ReasoningConfig)
-    database: DatabaseConfig = field(default_factory=DatabaseConfig)
     
     # Global settings
     debug: bool = False

@@ -4,12 +4,10 @@ Data Models for Query Analysis.
 This module contains the data classes and result types used by
 the query analyzer.
 """
-
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
 from .constants import QuestionIntent
-
 
 @dataclass
 class QueryAnalysisResult:

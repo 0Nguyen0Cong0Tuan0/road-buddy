@@ -5,7 +5,6 @@ Translation-based extraction for CLIP compatibility.
 Translates Vietnamese questions to English for use with English CLIP models.
 Uses keyword extraction as fallback for object detection.
 """
-
 import logging
 from typing import Optional
 
@@ -14,7 +13,6 @@ from ..models import QueryAnalysisResult
 from .keyword import KeywordExtractionStrategy
 
 logger = logging.getLogger(__name__)
-
 
 class TranslationExtractionStrategy(ExtractionStrategy):
     """

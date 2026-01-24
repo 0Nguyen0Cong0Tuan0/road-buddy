@@ -22,7 +22,6 @@ Usage:
     scorer = FrameScorer(strategy="clip")
     scores = scorer.score_frames(frames, question, target_classes)
 """
-
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Union, Tuple, Any
@@ -31,7 +30,6 @@ import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
-
 
 @dataclass
 class ScoringConfig:
@@ -58,7 +56,6 @@ class ScoringConfig:
     gamma: float = 0.2  # Distinctiveness weight
     use_translation: bool = True  # Default: translate Vietnamese for CLIP
     cache_embeddings: bool = True
-
 
 @dataclass
 class FrameScore:
@@ -90,11 +87,7 @@ class FrameScore:
             "detections_found": self.detections_found
         }
 
-
-# ============================================================================
-# Scoring Strategies (Plugins)
-# ============================================================================
-
+# Scoring Strategies
 class ScoringStrategy(ABC):
     """Abstract base class for frame scoring strategies."""
     
@@ -123,7 +116,6 @@ class ScoringStrategy(ABC):
     def name(self) -> str:
         """Strategy name."""
         pass
-
 
 class CLIPScoringStrategy(ScoringStrategy):
     """
@@ -299,7 +291,6 @@ class CLIPScoringStrategy(ScoringStrategy):
         
         return scores
 
-
 class MultilingualCLIPScoringStrategy(ScoringStrategy):
     """
     Multilingual CLIP (M-CLIP) scoring for direct Vietnamese support.
@@ -461,7 +452,6 @@ class MultilingualCLIPScoringStrategy(ScoringStrategy):
         
         return scores
 
-
 class DetectionScoringStrategy(ScoringStrategy):
     """
     Detection-guided scoring using YOLO models.
@@ -575,7 +565,6 @@ class DetectionScoringStrategy(ScoringStrategy):
         
         return scores
 
-
 class DistinctivenessStrategy:
     """
     Inter-Frame Distinctiveness (IFD) scoring.
@@ -662,11 +651,7 @@ class DistinctivenessStrategy:
         
         return self.compute(histograms)
 
-
-# ============================================================================
 # Combined Frame Scorer
-# ============================================================================
-
 class FrameScorer:
     """
     Main frame scoring interface with multiple strategies.
@@ -802,11 +787,6 @@ class FrameScorer:
             [frame], question, target_classes, return_detailed=True
         )
         return scores[0]
-
-
-# ============================================================================
-# Utility Functions
-# ============================================================================
 
 def get_available_strategies() -> List[str]:
     """Get list of available scoring strategies."""

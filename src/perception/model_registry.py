@@ -16,7 +16,6 @@ Usage:
     # Load a model
     model = get_model("yolo11n_road_lane")
 """
-
 import os
 from pathlib import Path
 from dataclasses import dataclass
@@ -29,7 +28,6 @@ try:
 except ImportError:
     ULTRALYTICS_AVAILABLE = False
     logging.warning("Ultralytics not available. Install via: pip install ultralytics")
-
 
 def _get_project_root() -> Path:
     """Get project root directory."""
@@ -44,7 +42,6 @@ PROJECT_ROOT = _get_project_root()
 MODELS_DIR = PROJECT_ROOT / "models"
 FINETUNE_DIR = MODELS_DIR / "finetune"
 INITIAL_DIR = MODELS_DIR / "initial"
-
 
 @dataclass
 class ModelInfo:
@@ -72,7 +69,6 @@ class ModelInfo:
             "description": self.description,
             "exists": self.exists
         }
-
 
 class ModelRegistry:
     """
@@ -254,7 +250,6 @@ class ModelRegistry:
             if info.base_model == base_model
         ]
 
-
 def get_model(name: str, device: str = "auto") -> "YOLO":
     """
     Factory function to load a model by name.
@@ -294,7 +289,6 @@ def get_model(name: str, device: str = "auto") -> "YOLO":
         model.to(device)
     
     return model
-
 
 def get_best_model_for_task(task: str = "traffic") -> str:
     """

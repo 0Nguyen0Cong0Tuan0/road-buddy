@@ -3,7 +3,6 @@ Dataset Loader for Road Buddy VQA.
 
 Loads and manages the train.json dataset with video paths and ground truth.
 """
-
 import json
 import logging
 from dataclasses import dataclass, field

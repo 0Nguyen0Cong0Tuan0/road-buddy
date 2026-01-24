@@ -5,7 +5,6 @@ Fast rule-based keyword extraction for Vietnamese traffic questions.
 Uses a comprehensive dictionary of Vietnamese traffic terms to identify
 target objects, question intent, and map to YOLO classes.
 """
-
 import re
 import logging
 from typing import List, Set
@@ -20,7 +19,6 @@ from ..constants import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 class KeywordExtractionStrategy(ExtractionStrategy):
     """

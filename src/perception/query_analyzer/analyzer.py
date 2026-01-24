@@ -4,7 +4,6 @@ Main Query Analyzer Interface.
 This module provides the main QueryAnalyzer class that orchestrates
 the different extraction strategies.
 """
-
 import logging
 from typing import List, Dict
 
@@ -18,7 +17,6 @@ from .strategies import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 class QueryAnalyzer:
     """
@@ -113,11 +111,6 @@ class QueryAnalyzer:
         self._strategy_name = strategy
         self._strategy = self._create_strategy(strategy, translator, semantic_model)
         logger.info(f"Switched to strategy: {strategy}")
-
-
-# ============================================================================
-# Utility Functions
-# ============================================================================
 
 def get_available_strategies() -> List[str]:
     """Get list of available extraction strategies."""

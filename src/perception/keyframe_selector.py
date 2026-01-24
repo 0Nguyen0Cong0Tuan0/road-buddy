@@ -27,7 +27,6 @@ Usage:
     for kf in keyframes:
         print(f"Frame {kf.frame_idx}: score={kf.score:.3f}")
 """
-
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Union, Tuple, Any
 from pathlib import Path
@@ -35,6 +34,8 @@ from enum import Enum
 import numpy as np
 import logging
 import time
+import decord
+import cv2
 
 from .query_analyzer import QueryAnalyzer, QueryAnalysisResult
 from .frame_scorer import FrameScorer, ScoringConfig, FrameScore
@@ -42,20 +43,17 @@ from .results import FrameDetections
 
 logger = logging.getLogger(__name__)
 
-
 class YOLOMode(Enum):
     """YOLO detection mode."""
     ALL_FRAMES = "all_frames"  # Run on all sampled frames (more accurate, slower)
     SELECTED_ONLY = "selected_only"  # Run only on selected keyframes (faster)
     NONE = "none"  # No YOLO detection (fastest)
 
-
 class SelectionStrategy(Enum):
     """Keyframe selection strategy."""
     TOP_K = "top_k"  # Simply select top k scores
     DIVERSE_TOP_K = "diverse_top_k"  # Select diverse frames with high scores
     TEMPORAL_WEIGHTED = "temporal_weighted"  # Weight by temporal position
-
 
 @dataclass
 class KeyframeSelectorConfig:
@@ -116,7 +114,6 @@ class KeyframeSelectorConfig:
     # Device
     device: str = "auto"
 
-
 @dataclass
 class KeyframeResult:
     """
@@ -148,7 +145,6 @@ class KeyframeResult:
             "score_details": self.score_details.to_dict() if self.score_details else None,
             "detections": self.detections.to_dict() if self.detections else None,
         }
-
 
 @dataclass
 class KeyframeSelectionResult:
@@ -191,7 +187,6 @@ class KeyframeSelectionResult:
             "query_analysis": self.query_analysis.to_dict(),
             "keyframes": [kf.to_dict() for kf in self.keyframes],
         }
-
 
 class KeyframeSelector:
     """
@@ -286,7 +281,6 @@ class KeyframeSelector:
             Tuple of (frames, timestamps, metadata)
         """
         try:
-            import decord
             decord.bridge.set_bridge('native')
             
             vr = decord.VideoReader(video_path)
@@ -338,7 +332,6 @@ class KeyframeSelector:
         video_path: str
     ) -> Tuple[List[np.ndarray], List[float], Dict]:
         """Fallback frame sampling using OpenCV."""
-        import cv2
         
         cap = cv2.VideoCapture(video_path)
         fps = cap.get(cv2.CAP_PROP_FPS)
@@ -404,9 +397,7 @@ class KeyframeSelector:
         if n_frames <= k:
             return list(range(n_frames))
         
-        # Compute frame similarity matrix using histograms
-        import cv2
-        
+        # Compute frame similarity matrix using histograms        
         histograms = []
         for frame in frames:
             if len(frame.shape) == 3:
@@ -617,23 +608,8 @@ class KeyframeSelector:
             config=self.config
         )
     
-    def select_from_frames(
-        self,
-        frames: List[np.ndarray],
-        question: str,
-        timestamps: Optional[List[float]] = None
-    ) -> KeyframeSelectionResult:
-        """
-        Select keyframes from pre-loaded frames.
-        
-        Args:
-            frames: List of video frames
-            question: Vietnamese traffic question
-            timestamps: Optional timestamps for each frame
-            
-        Returns:
-            KeyframeSelectionResult
-        """
+    def select_from_frames(self, frames: List[np.ndarray], question: str, timestamps: Optional[List[float]] = None) -> KeyframeSelectionResult:
+        """Select keyframes from pre-loaded frames."""
         start_time = time.time()
         
         # Generate timestamps if not provided
@@ -694,11 +670,6 @@ class KeyframeSelector:
             config=self.config
         )
 
-
-# ============================================================================
-# Utility Functions
-# ============================================================================
-
 def create_selector(
     num_keyframes: int = 8,
     query_strategy: str = "keyword",
@@ -733,34 +704,3 @@ def create_selector(
         **kwargs
     )
     return KeyframeSelector(config)
-
-
-if __name__ == "__main__":
-    # Demo usage
-    logging.basicConfig(level=logging.INFO)
-    
-    print("=" * 60)
-    print("Keyframe Selector Demo")
-    print("=" * 60)
-    
-    # Create selector with default config
-    config = KeyframeSelectorConfig(
-        num_keyframes=8,
-        query_strategy="keyword",  # User's choice
-        scoring_strategy="clip",
-        yolo_mode="selected_only",  # User's choice
-        use_translation=True,  # User's choice
-    )
-    
-    selector = KeyframeSelector(config)
-    
-    print(f"\nConfiguration:")
-    print(f"  Keyframes: {config.num_keyframes}")
-    print(f"  Query Strategy: {config.query_strategy}")
-    print(f"  Scoring Strategy: {config.scoring_strategy}")
-    print(f"  YOLO Mode: {config.yolo_mode}")
-    print(f"  Translation: {config.use_translation}")
-    print(f"  Weights: α={config.alpha}, β={config.beta}, γ={config.gamma}")
-    
-    # Test with dummy data
-    print("\n[Would process video and select keyframes here]")

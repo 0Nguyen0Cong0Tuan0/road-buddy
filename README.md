@@ -14,7 +14,7 @@ RoadBuddy implements the **"Lenses & Law"** architecture. The system processes d
 - **High-performance video ingestion**: GPU-accelerated decoding via Decord
 - **Smart keyframe selection**: Optical flow-based sampling
 - **Legal RAG**: Hybrid search over Law 36/2024 and QCVN 41:2024
-- **Optimized VLM**: Qwen2.5-VL-7B with AWQ quantization via vLLM
+- **Cloud VLM**: Gemini Pro Vision API (gemini-2.0-flash)
 - **Latency monitoring**: Real-time tracking of 30s constraint
 
 ## **Architecture**

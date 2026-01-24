@@ -6,7 +6,6 @@ This package contains the different extraction strategies:
 - TranslationExtractionStrategy: Translation for CLIP compatibility
 - SemanticExtractionStrategy: PhoBERT-based semantic matching
 """
-
 from .keyword import KeywordExtractionStrategy
 from .translation import TranslationExtractionStrategy
 from .semantic import SemanticExtractionStrategy

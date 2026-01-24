@@ -17,7 +17,6 @@ Usage:
     # Parse results
     detections = engine.parse_results(results)
 """
-
 import torch
 import os
 from typing import List, Optional, Union
@@ -32,7 +31,6 @@ except ImportError:
     YOLO = None
 
 from .results import FrameDetections, Detection, parse_yolo_results
-
 
 class PerceptionEngine:
     """

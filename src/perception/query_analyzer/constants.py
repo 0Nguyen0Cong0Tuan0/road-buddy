@@ -4,10 +4,8 @@ Constants and Vocabulary for Vietnamese Traffic Query Analysis.
 This module contains all dictionaries, patterns, and constants used by
 the query analyzer strategies.
 """
-
 from typing import Dict, List, Tuple
 from enum import Enum
-
 
 class QuestionIntent(Enum):
     """Types of questions in Vietnamese traffic QA."""
@@ -21,11 +19,7 @@ class QuestionIntent(Enum):
     TEMPORAL = "temporal"  # "Xuất hiện đầu tiên?" (Which appears first?)
     UNKNOWN = "unknown"
 
-
-# ============================================================================
 # Vietnamese Traffic Keywords -> Target Objects Mapping
-# ============================================================================
-
 VIETNAMESE_TRAFFIC_KEYWORDS: Dict[str, Dict] = {
     # === SIGNS ===
     "biển báo": {
@@ -232,10 +226,7 @@ VIETNAMESE_TRAFFIC_KEYWORDS: Dict[str, Dict] = {
     },
 }
 
-
-# ============================================================================
 # Question Intent Patterns (Ordered by Priority)
-# ============================================================================
 
 # ORDER MATTERS: more specific patterns first!
 INTENT_PATTERNS_ORDERED: List[Tuple[QuestionIntent, List[str]]] = [
@@ -295,11 +286,7 @@ INTENT_PATTERNS: Dict[QuestionIntent, List[str]] = {
     intent: patterns for intent, patterns in INTENT_PATTERNS_ORDERED
 }
 
-
-# ============================================================================
 # Temporal Keywords
-# ============================================================================
-
 TEMPORAL_KEYWORDS: Dict[str, str] = {
     "đầu tiên": "first",
     "cuối cùng": "last",
@@ -310,9 +297,7 @@ TEMPORAL_KEYWORDS: Dict[str, str] = {
 }
 
 
-# ============================================================================
 # Semantic Object Descriptions for PhoBERT Matching
-# ============================================================================
 
 # Vietnamese traffic object descriptions for semantic matching
 # Each entry: object_type -> (Vietnamese description, YOLO classes)

@@ -4,7 +4,6 @@ Semantic Extraction Strategy.
 Semantic embedding-based extraction using Vietnamese sentence embeddings (PhoBERT).
 Uses semantic similarity to match questions with predefined object descriptions.
 """
-
 import logging
 from typing import Dict, List, Set, Tuple, Optional, Any
 
@@ -18,7 +17,6 @@ from ..constants import (
 from .keyword import KeywordExtractionStrategy
 
 logger = logging.getLogger(__name__)
-
 
 class SemanticExtractionStrategy(ExtractionStrategy):
     """

@@ -33,14 +33,12 @@ Usage:
     python merge_datasets.py
     python merge_datasets.py --validate-only
 """
-
 import os
 import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
 import argparse
 from collections import defaultdict
-
 
 # BDD100K original classes (from data_yolo.yaml)
 # ['bike', 'bus', 'car', 'drivable area', 'lane', 'motor', 'person', 'rider', 'traffic light', 'traffic sign', 'train', 'truck']
@@ -64,7 +62,6 @@ BDD100K_CLASS_REMAP: Dict[int, Optional[int]] = {
 
 # Road Lane classes stay the same (IDs 0-5)
 # No remapping needed for Road Lane dataset
-
 def remap_bdd100k_label(label_path: Path, output_path: Path) -> bool:
     """
     Remap BDD100K label file to unified class IDs.
@@ -228,7 +225,6 @@ def validate_dataset(dest_dir: Path) -> Dict:
             results['mismatched'].extend([(split, name) for name in list(mismatched)[:5]])
     
     return results
-
 
 def main():
     parser = argparse.ArgumentParser(description='Merge Road Lane and BDD100K datasets')

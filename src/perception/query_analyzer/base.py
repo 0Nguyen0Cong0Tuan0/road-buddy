@@ -4,11 +4,9 @@ Base Strategy Interface for Query Extraction.
 This module defines the abstract base class that all extraction
 strategies must implement.
 """
-
 from abc import ABC, abstractmethod
 
 from .models import QueryAnalysisResult
-
 
 class ExtractionStrategy(ABC):
     """Abstract base class for query extraction strategies."""

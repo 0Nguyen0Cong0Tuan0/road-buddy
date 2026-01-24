@@ -3,7 +3,6 @@ Keyframe Evaluation Metrics.
 
 Evaluates keyframe selection quality against ground truth support_frames.
 """
-
 import logging
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
