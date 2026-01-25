@@ -251,21 +251,7 @@ class ModelRegistry:
         ]
 
 def get_model(name: str, device: str = "auto") -> "YOLO":
-    """
-    Factory function to load a model by name.
-    
-    Args:
-        name: Model name from registry
-        device: Device to load model on ("auto", "cuda", "cpu", "0", etc.)
-        
-    Returns:
-        Loaded YOLO model
-        
-    Raises:
-        ImportError: If ultralytics is not installed
-        ValueError: If model name is not found
-        FileNotFoundError: If model weights don't exist
-    """
+    """Factory function to load a model by name."""
     if not ULTRALYTICS_AVAILABLE:
         raise ImportError("Ultralytics is required. Install via: pip install ultralytics")
     
@@ -289,24 +275,3 @@ def get_model(name: str, device: str = "auto") -> "YOLO":
         model.to(device)
     
     return model
-
-def get_best_model_for_task(task: str = "traffic") -> str:
-    """
-    Get the recommended model for a specific task.
-    
-    Args:
-        task: Task type - "traffic" for general traffic detection,
-              "lane" for lane detection
-              
-    Returns:
-        Recommended model name
-    """
-    if task == "lane":
-        # Prefer larger model for lane detection if available
-        if ModelRegistry.get_model_info("yolo11l_road_lane").exists:
-            return "yolo11l_road_lane"
-        return "yolo11n_road_lane"
-    else:  # Default to traffic/object detection
-        if ModelRegistry.get_model_info("yolo11l_bdd100k").exists:
-            return "yolo11l_bdd100k"
-        return "yolo11n_bdd100k"

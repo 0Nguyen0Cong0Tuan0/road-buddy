@@ -61,7 +61,6 @@ BDD100K_CLASS_REMAP: Dict[int, Optional[int]] = {
 }
 
 # Road Lane classes stay the same (IDs 0-5)
-# No remapping needed for Road Lane dataset
 def remap_bdd100k_label(label_path: Path, output_path: Path) -> bool:
     """
     Remap BDD100K label file to unified class IDs.
@@ -78,12 +77,9 @@ def remap_bdd100k_label(label_path: Path, output_path: Path) -> bool:
             
             class_id = int(parts[0])
             new_class_id = BDD100K_CLASS_REMAP.get(class_id)
-            
             if new_class_id is None:
-                # Skip 'lane' class
                 continue
-            
-            # Update class ID and keep rest of annotation
+
             parts[0] = str(new_class_id)
             lines_out.append(' '.join(parts))
     
@@ -94,11 +90,7 @@ def remap_bdd100k_label(label_path: Path, output_path: Path) -> bool:
         return True
     return False
 
-def copy_road_lane_data(
-    source_dir: Path, 
-    dest_dir: Path, 
-    split: str
-) -> Dict[str, int]:
+def copy_road_lane_data(source_dir: Path, dest_dir: Path, split: str) -> Dict[str, int]:
     """Copy Road Lane data (no remapping needed)."""
     stats = {'images': 0, 'labels': 0, 'skipped': 0}
     
@@ -111,19 +103,15 @@ def copy_road_lane_data(
         print(f"  Warning: {src_images} not found")
         return stats
     
-    # Create destination directories
     dst_images.mkdir(parents=True, exist_ok=True)
     dst_labels.mkdir(parents=True, exist_ok=True)
     
-    # Copy images
     for img_path in src_images.glob('*'):
         if img_path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.bmp']:
-            # Add prefix to avoid name conflicts
             new_name = f"roadlane_{img_path.name}"
             shutil.copy2(img_path, dst_images / new_name)
             stats['images'] += 1
             
-            # Copy corresponding label
             label_name = img_path.stem + '.txt'
             label_path = src_labels / label_name
             if label_path.exists():
@@ -135,11 +123,7 @@ def copy_road_lane_data(
     
     return stats
 
-def copy_bdd100k_data(
-    source_dir: Path, 
-    dest_dir: Path, 
-    split: str
-) -> Dict[str, int]:
+def copy_bdd100k_data(source_dir: Path, dest_dir: Path, split: str) -> Dict[str, int]:
     """Copy BDD100K data with class remapping."""
     stats = {'images': 0, 'labels': 0, 'skipped': 0, 'lane_only': 0}
     
@@ -152,11 +136,9 @@ def copy_bdd100k_data(
         print(f"  Warning: {src_images} not found")
         return stats
     
-    # Create destination directories
     dst_images.mkdir(parents=True, exist_ok=True)
     dst_labels.mkdir(parents=True, exist_ok=True)
     
-    # Process images
     for img_path in src_images.glob('*'):
         if img_path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.bmp']:
             label_name = img_path.stem + '.txt'
@@ -166,7 +148,6 @@ def copy_bdd100k_data(
                 stats['skipped'] += 1
                 continue
             
-            # Remap label
             new_name = f"bdd100k_{img_path.name}"
             new_label_name = f"bdd100k_{label_name}"
             
@@ -175,7 +156,6 @@ def copy_bdd100k_data(
                 stats['images'] += 1
                 stats['labels'] += 1
             else:
-                # Only had 'lane' annotations, skip
                 stats['lane_only'] += 1
     
     return stats

@@ -14,11 +14,9 @@ Usage:
         for det in frame.detections:
             print(f"{det.class_name}: {det.confidence:.2f}")
 """
-
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Tuple
 import numpy as np
-
 
 @dataclass
 class Detection:
@@ -93,18 +91,7 @@ class Detection:
         }
     
     def to_yolo_format(self, img_width: int, img_height: int) -> Tuple[int, float, float, float, float]:
-        """
-        Convert to YOLO annotation format (class_id, x_center, y_center, width, height).
-        
-        All coordinates are normalized to [0, 1].
-        
-        Args:
-            img_width: Image width in pixels
-            img_height: Image height in pixels
-            
-        Returns:
-            Tuple of (class_id, x_center, y_center, width, height)
-        """
+        """Convert to YOLO annotation format (class_id, x_center, y_center, width, height)."""
         cx, cy = self.center
         w, h = self.width, self.height
         return (
@@ -166,18 +153,8 @@ class FrameDetections:
             "image_size": self.image_size
         }
 
-
 def parse_yolo_results(results: List, start_frame_idx: int = 0) -> List[FrameDetections]:
-    """
-    Parse YOLO results into structured FrameDetections.
-    
-    Args:
-        results: List of YOLO result objects from model inference
-        start_frame_idx: Starting frame index for numbering
-        
-    Returns:
-        List of FrameDetections, one per input frame
-    """
+    """Parse YOLO results into structured FrameDetections."""
     frame_detections = []
     
     for idx, result in enumerate(results):
@@ -232,19 +209,8 @@ def parse_yolo_results(results: List, start_frame_idx: int = 0) -> List[FrameDet
     
     return frame_detections
 
-
-def aggregate_detections(
-    frame_detections: List[FrameDetections]
-) -> Dict[str, Any]:
-    """
-    Aggregate statistics across multiple frames.
-    
-    Args:
-        frame_detections: List of FrameDetections
-        
-    Returns:
-        Dictionary with aggregated statistics
-    """
+def aggregate_detections(frame_detections: List[FrameDetections]) -> Dict[str, Any]:
+    """Aggregate statistics across multiple frames."""
     total_detections = 0
     class_counts: Dict[str, int] = {}
     confidence_scores: List[float] = []
@@ -267,23 +233,8 @@ def aggregate_detections(
         "max_confidence": np.max(confidence_scores) if confidence_scores else 0.0,
     }
 
-
-def detections_to_annotations(
-    frame_detections: FrameDetections,
-    img_width: int,
-    img_height: int
-) -> List[str]:
-    """
-    Convert frame detections to YOLO annotation format.
-    
-    Args:
-        frame_detections: FrameDetections object
-        img_width: Image width in pixels
-        img_height: Image height in pixels
-        
-    Returns:
-        List of annotation strings in YOLO format
-    """
+def detections_to_annotations(frame_detections: FrameDetections, img_width: int, img_height: int) -> List[str]:
+    """Convert frame detections to YOLO annotation format."""
     annotations = []
     for det in frame_detections.detections:
         cls_id, cx, cy, w, h = det.to_yolo_format(img_width, img_height)

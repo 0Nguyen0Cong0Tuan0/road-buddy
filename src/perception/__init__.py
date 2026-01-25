@@ -27,13 +27,11 @@ Usage:
     selector = KeyframeSelector(KeyframeSelectorConfig(num_keyframes=8))
     result = selector.select("video.mp4", "Biển báo tốc độ là bao nhiêu?")
 """
-
 from .detector import PerceptionEngine
 from .model_registry import (
     ModelRegistry,
     ModelInfo,
     get_model,
-    get_best_model_for_task,
 )
 from .results import (
     Detection,
@@ -68,7 +66,6 @@ __all__ = [
     "ModelRegistry",
     "ModelInfo", 
     "get_model",
-    "get_best_model_for_task",
     # Results
     "Detection",
     "FrameDetections",

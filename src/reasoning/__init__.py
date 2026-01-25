@@ -1,14 +1,13 @@
 """
 Reasoning Package for Road Buddy VQA.
 
-Provides VLM integration (Gemini API), prompt building, and answer extraction.
+Provides VLM integration (Gemini API + local Qwen2.5-VL), prompt building, and answer extraction.
 """
-
 from .vlm_client import (
     VLMConfig,
     VLMResponse,
     GeminiVLMClient,
-    MockVLMClient,
+    Qwen2VLClient,
     create_vlm_client,
 )
 
@@ -29,10 +28,11 @@ from .answer_extractor import (
 )
 
 __all__ = [
-    # VLM Client (Gemini API)
+    # VLM Clients (Gemini API + Local Qwen)
     "VLMConfig",
     "VLMResponse",
     "GeminiVLMClient",
+    "Qwen2VLClient",
     "create_vlm_client",
     # Prompt Builder
     "PromptStyle",

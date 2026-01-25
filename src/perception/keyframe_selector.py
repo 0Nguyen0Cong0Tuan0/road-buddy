@@ -36,10 +36,11 @@ import logging
 import time
 import decord
 import cv2
+from ultralytics import YOLO
 
 from .query_analyzer import QueryAnalyzer, QueryAnalysisResult
 from .frame_scorer import FrameScorer, ScoringConfig, FrameScore
-from .results import FrameDetections
+from .results import FrameDetections, parse_yolo_results
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +256,6 @@ class KeyframeSelector:
             return
         
         try:
-            from ultralytics import YOLO
             logger.info(f"Loading YOLO model: {self.config.yolo_model_path}")
             self._yolo_model = YOLO(self.config.yolo_model_path)
             
@@ -270,16 +270,8 @@ class KeyframeSelector:
         self._yolo_model = model
         self._frame_scorer.set_yolo_model(model)
     
-    def _sample_frames(
-        self, 
-        video_path: str
-    ) -> Tuple[List[np.ndarray], List[float], Dict]:
-        """
-        Sample frames from video at specified rate.
-        
-        Returns:
-            Tuple of (frames, timestamps, metadata)
-        """
+    def _sample_frames(self, video_path: str) -> Tuple[List[np.ndarray], List[float], Dict]:
+        """Sample frames from video at specified rate."""
         try:
             decord.bridge.set_bridge('native')
             
@@ -327,10 +319,7 @@ class KeyframeSelector:
             logger.warning("Decord not available, using OpenCV")
             return self._sample_frames_opencv(video_path)
     
-    def _sample_frames_opencv(
-        self, 
-        video_path: str
-    ) -> Tuple[List[np.ndarray], List[float], Dict]:
+    def _sample_frames_opencv(self, video_path: str) -> Tuple[List[np.ndarray], List[float], Dict]:
         """Fallback frame sampling using OpenCV."""
         
         cap = cv2.VideoCapture(video_path)
@@ -372,21 +361,12 @@ class KeyframeSelector:
         
         return frames, timestamps, metadata
     
-    def _select_top_k(
-        self,
-        scores: np.ndarray,
-        k: int
-    ) -> List[int]:
+    def _select_top_k(self, scores: np.ndarray, k: int) -> List[int]:
         """Simple top-k selection."""
         indices = np.argsort(scores)[::-1][:k]
         return sorted(indices.tolist())  # Sort by frame order
     
-    def _select_diverse_top_k(
-        self,
-        scores: np.ndarray,
-        frames: List[np.ndarray],
-        k: int
-    ) -> List[int]:
+    def _select_diverse_top_k(self, scores: np.ndarray, frames: List[np.ndarray], k: int) -> List[int]:
         """
         Select top-k frames while maintaining diversity.
         
@@ -450,12 +430,7 @@ class KeyframeSelector:
         
         return sorted(selected)
     
-    def _select_temporal_weighted(
-        self,
-        scores: np.ndarray,
-        timestamps: List[float],
-        k: int
-    ) -> List[int]:
+    def _select_temporal_weighted(self, scores: np.ndarray, timestamps: List[float], k: int) -> List[int]:
         """
         Select frames with temporal weighting.
         
@@ -485,60 +460,36 @@ class KeyframeSelector:
         """Run YOLO detection on frames."""
         if self._yolo_model is None:
             self._load_yolo_model()
-        
         if self._yolo_model is None:
             return {}
-        
-        from .results import parse_yolo_results
         
         detections = {}
         
         for i, frame in enumerate(frames):
-            results = self._yolo_model.predict(
-                frame,
-                conf=self.config.yolo_confidence,
-                verbose=False
-            )
-            
+            results = self._yolo_model.predict(frame, conf=self.config.yolo_confidence, verbose=False)
             parsed = parse_yolo_results(results, start_frame_idx=frame_indices[i])
             if parsed:
                 detections[frame_indices[i]] = parsed[0]
         
         return detections
     
-    def select(
-        self,
-        video_path: str,
-        question: str
-    ) -> KeyframeSelectionResult:
-        """
-        Select keyframes from video based on question.
-        
-        Args:
-            video_path: Path to video file
-            question: Vietnamese traffic question
-            
-        Returns:
-            KeyframeSelectionResult with selected frames and metadata
-        """
+    def select(self, video_path: str, question: str) -> KeyframeSelectionResult:
+        """Select keyframes from video based on question."""
         start_time = time.time()
         
-        # Step 1: Analyze question
+        # Analyze question
         logger.info(f"Analyzing question: {question[:50]}...")
         query_analysis = self._query_analyzer.analyze(question)
         
-        logger.info(
-            f"Query analysis: targets={query_analysis.target_objects}, "
-            f"intent={query_analysis.question_intent.value}"
-        )
+        logger.info(f"Query analysis: targets={query_analysis.target_objects}, intent={query_analysis.question_intent.value}")
         
-        # Step 2: Sample frames from video
+        # Sample frames from video
         logger.info(f"Sampling frames from: {video_path}")
         frames, timestamps, metadata = self._sample_frames(video_path)
         
         logger.info(f"Sampled {len(frames)} frames from {metadata['duration']:.1f}s video")
         
-        # Step 3: Score frames (with optional YOLO for scoring)
+        # Score frames (with optional YOLO for scoring)
         logger.info("Scoring frames...")
         
         # Only load YOLO for scoring if mode is ALL_FRAMES
@@ -557,7 +508,7 @@ class KeyframeSelector:
         
         scores = np.array([s.final_score for s in detailed_scores])
         
-        # Step 4: Select keyframes
+        # Select keyframes
         logger.info(f"Selecting {self.config.num_keyframes} keyframes...")
         
         if self.config.selection_strategy == "top_k":
@@ -573,14 +524,14 @@ class KeyframeSelector:
         else:
             selected_indices = self._select_top_k(scores, self.config.num_keyframes)
         
-        # Step 5: Run YOLO on selected frames (if mode is selected_only)
+        # Run YOLO on selected frames (if mode is selected_only)
         detections = {}
         if self.config.yolo_mode == "selected_only":
             logger.info("Running YOLO on selected frames...")
             selected_frames = [frames[i] for i in selected_indices]
             detections = self._run_yolo_detection(selected_frames, selected_indices)
         
-        # Step 6: Build results
+        # Build results
         keyframes = []
         for idx in selected_indices:
             kf = KeyframeResult(

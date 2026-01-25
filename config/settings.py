@@ -125,9 +125,7 @@ class PerceptionConfig:
     # Tracking
     tracker_config: str = "botsort.yaml"
 
-
 # Query-Guided Perception
-
 @dataclass
 class QueryGuidedConfig:
     """Configuration for Query-Guided Perception Module.
@@ -180,7 +178,6 @@ class QueryGuidedConfig:
     # Semantic Strategy
     semantic_model: str = "vinai/phobert-base"  # For semantic extraction
 
-
 # Reasoning
 @dataclass
 class ReasoningConfig:
@@ -221,11 +218,9 @@ class ProjectConfig:
         if self.perception.model_path is None:
             self.perception.model_path = str(self.paths.yolo_model_path)
 
-
 # Configuration Accessors
 _path_config: Optional[PathConfig] = None
 _project_config: Optional[ProjectConfig] = None
-
 
 def get_path_config() -> PathConfig:
     """Get the path configuration singleton."""
@@ -233,7 +228,6 @@ def get_path_config() -> PathConfig:
     if _path_config is None:
         _path_config = PathConfig()
     return _path_config
-
 
 def get_config() -> ProjectConfig:
     """Get the master configuration singleton."""
