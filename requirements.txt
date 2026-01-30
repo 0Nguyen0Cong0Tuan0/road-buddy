@@ -1,0 +1,30 @@
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+python-dotenv>=1.0.0
+numpy>=1.24.0
+tqdm>=4.66.0
+input_reader>=1.0.0
+opencv-python>=4.8.0
+decord>=0.6.0
+Pillow>=10.0.0
+torch>=2.1.0
+torchvision>=0.16.0
+torchaudio>=2.1.0
+ultralytics>=8.0.0
+transformers>=4.37.0
+accelerate>=0.27.0
+bitsandbytes>=0.42.0
+peft>=0.8.0
+optimum>=1.16.0
+qwen-vl-utils>=0.0.4
+clip
+open-clip-torch>=2.24.0
+multilingual-clip>=1.0.1
+ftfy>=6.1.0
+regex>=2023.10.3
+# Note: For OpenAI CLIP, install directly from git if needed:
+# git+https://github.com/openai/CLIP.git
+
+google-genai>=0.3.0
+deep-translator>=1.11.0
+scikit-learn>=1.4.0
+pytest>=7.4.0
