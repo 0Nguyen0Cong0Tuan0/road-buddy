@@ -48,7 +48,7 @@ class ScoringConfig:
         cache_embeddings: Whether to cache frame embeddings
     """
     strategy: str = "clip"
-    clip_model: str = "ViT-L/14"
+    clip_model: str = "ViT-B/32"  # Use smaller model by default for memory efficiency
     device: str = "auto"
     batch_size: int = 16
     alpha: float = 0.5  # QFS weight
@@ -137,7 +137,9 @@ class CLIPScoringStrategy(ScoringStrategy):
         self._preprocess = None
         self._tokenizer = None
         self._translator = None
-        self._init_model()
+        self._model_loaded = False
+        # NOTE: Lazy loading - model is loaded on first score() call
+        # This allows proper memory management with VLM models
         
         if use_translation:
             self._init_translator()
@@ -165,6 +167,7 @@ class CLIPScoringStrategy(ScoringStrategy):
                 device=self._device
             )
             self._model.eval()
+            self._model_loaded = True
             logger.info(f"CLIP model loaded on {self._device}")
             
         except ImportError:
@@ -183,6 +186,7 @@ class CLIPScoringStrategy(ScoringStrategy):
                 import torch
                 self._model = self._model.to(self._device)
                 self._model.eval()
+                self._model_loaded = True
                 logger.info(f"OpenCLIP model loaded on {self._device}")
             except ImportError:
                 logger.error(
@@ -227,6 +231,10 @@ class CLIPScoringStrategy(ScoringStrategy):
         target_classes: Optional[List[str]] = None
     ) -> np.ndarray:
         """Score frames using CLIP Question-Frame Similarity."""
+        # Lazy load model on first use
+        if not self._model_loaded:
+            self._init_model()
+        
         if self._model is None:
             logger.warning("CLIP model not loaded, returning uniform scores")
             return np.ones(len(frames))
@@ -290,6 +298,30 @@ class CLIPScoringStrategy(ScoringStrategy):
             scores = (scores - scores.min()) / (scores.max() - scores.min())
         
         return scores
+    
+    def unload(self):
+        """Unload CLIP model to free GPU memory."""
+        if self._model is not None:
+            logger.info("Unloading CLIP model...")
+            import torch
+            import gc
+            
+            del self._model
+            del self._preprocess
+            if self._tokenizer is not None:
+                del self._tokenizer
+            
+            self._model = None
+            self._preprocess = None
+            self._tokenizer = None
+            self._model_loaded = False
+            
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
+            
+            logger.info("CLIP model unloaded")
 
 class MultilingualCLIPScoringStrategy(ScoringStrategy):
     """
@@ -787,6 +819,19 @@ class FrameScorer:
             [frame], question, target_classes, return_detailed=True
         )
         return scores[0]
+    
+    def unload_models(self):
+        """Unload all scoring models to free GPU memory."""
+        if self._qfs_scorer is not None:
+            if hasattr(self._qfs_scorer, 'unload'):
+                self._qfs_scorer.unload()
+        
+        if self._detection_scorer is not None:
+            # Detection scorer doesn't hold GPU memory persistently
+            self._detection_scorer._model = None
+        
+        # Clear embedding cache
+        self._embedding_cache.clear()
 
 def get_available_strategies() -> List[str]:
     """Get list of available scoring strategies."""

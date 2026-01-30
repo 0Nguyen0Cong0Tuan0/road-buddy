@@ -101,7 +101,7 @@ class KeyframeSelectorConfig:
     
     # CLIP settings
     use_translation: bool = True  # Default per user request
-    clip_model: str = "ViT-L/14"
+    clip_model: str = "ViT-B/32"  # Use smaller model by default for memory efficiency
     
     # Scoring weights
     alpha: float = 0.5  # QFS weight
@@ -269,6 +269,30 @@ class KeyframeSelector:
         """Set pre-loaded YOLO model."""
         self._yolo_model = model
         self._frame_scorer.set_yolo_model(model)
+    
+    def unload_models(self):
+        """Unload all perception models to free GPU memory for VLM."""
+        import gc
+        import torch
+        
+        logger.info("Unloading perception models...")
+        
+        # Unload frame scorer models (CLIP)
+        if hasattr(self._frame_scorer, 'unload_models'):
+            self._frame_scorer.unload_models()
+        
+        # Unload YOLO model
+        if self._yolo_model is not None:
+            del self._yolo_model
+            self._yolo_model = None
+        
+        # Force garbage collection and clear CUDA cache
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+        
+        logger.info("Perception models unloaded")
     
     def _sample_frames(self, video_path: str) -> Tuple[List[np.ndarray], List[float], Dict]:
         """Sample frames from video at specified rate."""

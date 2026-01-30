@@ -3,14 +3,12 @@ Answer Extractor for VLM Responses.
 
 Parses VLM output to extract the answer choice.
 """
-
 import re
 import logging
 from typing import List, Optional, Tuple
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
-
 
 @dataclass
 class ExtractionResult:
@@ -60,7 +58,6 @@ def extract_answer_letter(text: str) -> Optional[str]:
             return match.group(1).upper()
     
     return None
-
 
 def extract_answer(response_text: str, choices: List[str], default: str = "A") -> ExtractionResult:
     """
@@ -162,7 +159,6 @@ def extract_answer(response_text: str, choices: List[str], default: str = "A") -
         confidence=0.3,
         method="default_fallback"
     )
-
 
 def batch_extract_answers(responses: List[str], choices_list: List[List[str]], default: str = "A") -> List[ExtractionResult]:
     """Extract answers from multiple responses."""

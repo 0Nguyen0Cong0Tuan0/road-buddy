@@ -1,59 +1,76 @@
 """
 Translation Extraction Strategy.
 
-Translation-based extraction for CLIP compatibility.
-Translates Vietnamese questions to English for use with English CLIP models.
-Uses keyword extraction as fallback for object detection.
+Translates Vietnamese questions to English for better CLIP compatibility.
 """
 import logging
 from typing import Optional
 
 from ..base import ExtractionStrategy
 from ..models import QueryAnalysisResult
+from ..constants import QuestionIntent
 from .keyword import KeywordExtractionStrategy
 
 logger = logging.getLogger(__name__)
 
+
 class TranslationExtractionStrategy(ExtractionStrategy):
     """
-    Translation-based extraction for CLIP compatibility.
+    Extraction strategy that translates Vietnamese to English.
     
-    Translates Vietnamese questions to English for use with English CLIP models.
-    Uses keyword extraction as fallback for object detection.
-    
-    Uses deep_translator (GoogleTranslator) for reliable translation.
+    Uses deep_translator for translation, then applies keyword extraction.
+    Useful when working with English-only CLIP models.
     """
     
     def __init__(self, translator: str = "deep_translator"):
-        """Initialize with deep_translator (translator param kept for API compatibility)."""
+        """
+        Initialize translation strategy.
+        
+        Args:
+            translator: Translation backend to use
+        """
+        self._translator_name = translator
         self._translator = None
         self._keyword_strategy = KeywordExtractionStrategy()
-        self._init_translator()
+    
+    def _get_translator(self):
+        """Lazy load translator."""
+        if self._translator is None:
+            try:
+                from deep_translator import GoogleTranslator
+                self._translator = GoogleTranslator(source='vi', target='en')
+                logger.info("Loaded GoogleTranslator for vi->en")
+            except ImportError:
+                logger.warning("deep_translator not installed. Translation disabled.")
+                self._translator = None
+        return self._translator
     
     @property
     def name(self) -> str:
         return "translation"
     
-    def _init_translator(self):
-        """Initialize the deep_translator backend."""
+    def translate(self, text: str) -> Optional[str]:
+        """Translate Vietnamese text to English."""
+        translator = self._get_translator()
+        if translator is None:
+            return None
+        
         try:
-            from deep_translator import GoogleTranslator
-            self._translator = GoogleTranslator(source='vi', target='en')
-            logger.info("Translation enabled using deep_translator (Vietnamese -> English)")
-        except ImportError as e:
-            logger.warning(
-                f"deep_translator not available: {e}. "
-                "Install with: pip install deep_translator"
-            )
+            translated = translator.translate(text)
+            return translated
+        except Exception as e:
+            logger.warning(f"Translation failed: {e}")
+            return None
     
     def extract(self, question: str) -> QueryAnalysisResult:
         """Extract information with translation support."""
-        # First, use keyword extraction for object/class mapping
+        # First, extract using keyword strategy (for Vietnamese-specific patterns)
         keyword_result = self._keyword_strategy.extract(question)
         
-        # Then translate for CLIP
-        translated = self._translate(question)
+        # Translate the question
+        translated = self.translate(question)
         
+        # Update result with translation
         return QueryAnalysisResult(
             original_question=question,
             translated_question=translated,
@@ -61,17 +78,6 @@ class TranslationExtractionStrategy(ExtractionStrategy):
             question_intent=keyword_result.question_intent,
             yolo_classes=keyword_result.yolo_classes,
             keywords_found=keyword_result.keywords_found,
-            confidence=keyword_result.confidence if translated else keyword_result.confidence * 0.5,
-            temporal_hints=keyword_result.temporal_hints
+            confidence=keyword_result.confidence,
+            temporal_hints=keyword_result.temporal_hints,
         )
-    
-    def _translate(self, text: str) -> Optional[str]:
-        """Translate Vietnamese to English using deep_translator."""
-        if self._translator is None:
-            return None
-        
-        try:
-            return self._translator.translate(text)
-        except Exception as e:
-            logger.warning(f"Translation failed: {e}")
-            return None

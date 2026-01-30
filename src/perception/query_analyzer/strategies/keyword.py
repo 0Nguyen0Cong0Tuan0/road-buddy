@@ -1,9 +1,7 @@
 """
 Keyword Extraction Strategy.
 
-Fast rule-based keyword extraction for Vietnamese traffic questions.
-Uses a comprehensive dictionary of Vietnamese traffic terms to identify
-target objects, question intent, and map to YOLO classes.
+Fast rule-based extraction using Vietnamese traffic vocabulary.
 """
 import re
 import logging
@@ -12,87 +10,87 @@ from typing import List, Set
 from ..base import ExtractionStrategy
 from ..models import QueryAnalysisResult
 from ..constants import (
+    QuestionIntent,
     VIETNAMESE_TRAFFIC_KEYWORDS,
     INTENT_PATTERNS_ORDERED,
     TEMPORAL_KEYWORDS,
-    QuestionIntent,
 )
 
 logger = logging.getLogger(__name__)
+
 
 class KeywordExtractionStrategy(ExtractionStrategy):
     """
     Fast rule-based keyword extraction for Vietnamese traffic questions.
     
-    Uses a comprehensive dictionary of Vietnamese traffic terms to identify
-    target objects, question intent, and map to YOLO classes.
-    
-    This is the fastest strategy and serves as the baseline for other strategies.
+    Uses predefined vocabulary to extract:
+    - Target objects (signs, lights, lanes, vehicles)
+    - Question intent (existence, direction, value, permission)
+    - Temporal hints (first, last, current)
     """
     
     def __init__(self):
-        self._keywords = VIETNAMESE_TRAFFIC_KEYWORDS
-        self._intent_patterns_ordered = INTENT_PATTERNS_ORDERED
-        self._temporal_keywords = TEMPORAL_KEYWORDS
+        """Initialize keyword extractor."""
+        self._compiled_patterns = self._compile_patterns()
+    
+    def _compile_patterns(self):
+        """Pre-compile regex patterns for efficiency."""
+        compiled = {}
+        for intent, patterns in INTENT_PATTERNS_ORDERED:
+            compiled[intent] = [re.compile(p, re.IGNORECASE) for p in patterns]
+        return compiled
     
     @property
     def name(self) -> str:
         return "keyword"
     
     def extract(self, question: str) -> QueryAnalysisResult:
-        """Extract target objects and intent using keyword matching."""
+        """Extract information from Vietnamese question using keywords."""
         question_lower = question.lower()
         
-        # Find matching keywords
-        target_objects: Set[str] = set()
+        # Extract target objects
+        target_objects: List[str] = []
         yolo_classes: Set[str] = set()
         keywords_found: List[str] = []
         
-        # Sort keywords by length (longer first) to match more specific terms first
-        sorted_keywords = sorted(
-            self._keywords.keys(), 
-            key=len, 
-            reverse=True
-        )
-        
-        for keyword in sorted_keywords:
+        for keyword, info in VIETNAMESE_TRAFFIC_KEYWORDS.items():
             if keyword in question_lower:
+                target_objects.extend(info["objects"])
+                yolo_classes.update(info["yolo_classes"])
                 keywords_found.append(keyword)
-                target_objects.update(self._keywords[keyword]["objects"])
-                yolo_classes.update(self._keywords[keyword]["yolo_classes"])
         
-        # Detect question intent
-        intent = self._detect_intent(question_lower)
+        # Determine question intent (check in priority order)
+        intent = QuestionIntent.UNKNOWN
+        for check_intent, patterns in self._compiled_patterns.items():
+            for pattern in patterns:
+                if pattern.search(question_lower):
+                    intent = check_intent
+                    break
+            if intent != QuestionIntent.UNKNOWN:
+                break
         
         # Extract temporal hints
-        temporal_hints = self._extract_temporal_hints(question_lower)
+        temporal_hints = []
+        for vn_keyword, en_meaning in TEMPORAL_KEYWORDS.items():
+            if vn_keyword in question_lower:
+                temporal_hints.append(en_meaning)
         
         # Calculate confidence based on matches
-        confidence = min(1.0, len(keywords_found) * 0.3 + 0.1)
+        confidence = 0.0
+        if keywords_found:
+            confidence += 0.4
+        if intent != QuestionIntent.UNKNOWN:
+            confidence += 0.4
+        if temporal_hints:
+            confidence += 0.2
         
         return QueryAnalysisResult(
             original_question=question,
             translated_question=None,
-            target_objects=list(target_objects),
+            target_objects=list(set(target_objects)),  # Deduplicate
             question_intent=intent,
             yolo_classes=list(yolo_classes),
             keywords_found=keywords_found,
             confidence=confidence,
-            temporal_hints=temporal_hints
+            temporal_hints=temporal_hints,
         )
-    
-    def _detect_intent(self, question: str) -> QuestionIntent:
-        """Detect the intent/type of the question. Uses ordered patterns for priority."""
-        for intent, patterns in self._intent_patterns_ordered:
-            for pattern in patterns:
-                if re.search(pattern, question):
-                    return intent
-        return QuestionIntent.UNKNOWN
-    
-    def _extract_temporal_hints(self, question: str) -> List[str]:
-        """Extract temporal hints from the question."""
-        hints = []
-        for vn_keyword, en_hint in self._temporal_keywords.items():
-            if vn_keyword in question:
-                hints.append(en_hint)
-        return hints

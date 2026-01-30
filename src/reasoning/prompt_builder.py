@@ -3,14 +3,12 @@ Prompt Builder for Vietnamese Traffic MCQ.
 
 Builds optimized prompts for VLM answer generation.
 """
-
 import logging
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 from enum import Enum
 
 logger = logging.getLogger(__name__)
-
 
 class PromptStyle(Enum):
     """Prompt style options."""
