@@ -77,9 +77,6 @@ Implement a **three-stage pipeline**:
 ```
 
 
-![Architecture Diagram](docs/architecture_diagram.png) 
-
-
 ### Component flow
 
 ```mermaid
